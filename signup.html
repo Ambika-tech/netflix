@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Netflix Clone – Telugu Movies</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --red:#e50914;
+  --bg:#141414;
+  --gray:#b3b3b3;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:Roboto,sans-serif}
+body{background:var(--bg);color:#fff;overflow-x:hidden}
+
+/* ---------- AUTH ---------- */
+.auth{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(rgba(0,0,0,.7),rgba(0,0,0,.9)),
+  url("https://assets.nflxext.com/ffe/siteui/vlv3/6e1d0b1b-3e41-4a8f-9e21-cc8e1c6d4d41/US-en-20231016-popsignuptwoweeks-perspective_alpha_website_medium.jpg")
+  center/cover no-repeat;
+}
+.auth-box{
+  background:rgba(0,0,0,.75);
+  padding:50px;
+  width:100%;
+  max-width:420px;
+}
+.auth-box h1{margin-bottom:20px}
+.auth-box input{
+  width:100%;height:50px;margin-bottom:15px;
+  background:#333;border:none;color:#fff;padding:10px
+}
+.auth-btn{
+  width:100%;height:45px;
+  background:var(--red);color:#fff;
+  font-weight:700;border:none
+}
+.toggle{margin-top:15px;color:#aaa}
+.toggle span{color:#fff;cursor:pointer}
+.error{color:#ffa00a;font-size:14px;min-height:18px}
+
+/* ---------- DASHBOARD ---------- */
+.hidden{display:none}
+.nav{
+  position:fixed;top:0;width:100%;
+  padding:15px 5%;
+  display:flex;justify-content:space-between;
+  background:linear-gradient(to bottom,rgba(0,0,0,.8),transparent);
+  z-index:100
+}
+.nav.scrolled{background:#141414}
+.logo{color:var(--red);font-weight:900;font-size:26px}
+
+.hero{
+  height:80vh;
+  background-size:cover;
+  background-position:center;
+  display:flex;
+  align-items:flex-end;
+}
+.hero-content{
+  padding:0 5% 80px;
+  max-width:600px;
+}
+.hero h1{font-size:3rem;margin-bottom:15px}
+.hero p{font-size:1.1rem;margin-bottom:20px}
+.hero button{
+  padding:10px 25px;
+  font-size:1rem;
+  border:none;
+  background:white;
+  color:black;
+  cursor:pointer
+}
+
+/* ---------- ROWS ---------- */
+.row{padding:20px 0 20px 5%}
+.row h2{margin-bottom:10px}
+.row-posters{
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  scrollbar-width:none
+}
+.row-posters::-webkit-scrollbar{display:none}
+
+.poster{
+  border-radius:4px;
+  cursor:pointer;
+  transition:.3s;
+}
+.poster:hover{transform:scale(1.08)}
+
+.poster-normal{width:220px;height:125px}
+.poster-large{width:150px;height:230px}
+
+/* ---------- PLAYER ---------- */
+#player{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.9);
+  justify-content:center;
+  align-items:center;
+  z-index:999
+}
+.player-box{
+  width:90%;
+  max-width:900px;
+  aspect-ratio:16/9;
+}
+.player-box iframe{width:100%;height:100%}
+.close{
+  position:absolute;top:20px;right:20px;
+  background:none;color:#fff;font-size:22px;
+  cursor:pointer
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media(max-width:768px){
+  .hero h1{font-size:2rem}
+  .poster-normal{width:160px;height:90px}
+  .poster-large{width:130px;height:200px}
+}
+</style>
+</head>
+
+<body>
+
+<!-- AUTH -->
+<section class="auth" id="auth">
+  <div class="auth-box">
+    <form id="loginForm">
+      <h1>Sign In</h1>
+      <p class="error" id="loginError"></p>
+      <input type="email" id="loginEmail" placeholder="Email" required>
+      <input type="password" id="loginPass" placeholder="Password" required>
+      <button class="auth-btn">Sign In</button>
+      <p class="toggle">New here? <span onclick="toggleAuth()">Sign up</span></p>
+    </form>
+
+    <form id="signupForm" class="hidden">
+      <h1>Sign Up</h1>
+      <p class="error" id="signupError"></p>
+      <input type="email" id="signupEmail" placeholder="Email" required>
+      <input type="password" id="signupPass" placeholder="Password (min 6)" required>
+      <button class="auth-btn">Sign Up</button>
+      <p class="toggle">Have account? <span onclick="toggleAuth()">Sign in</span></p>
+    </form>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<section id="dashboard" class="hidden">
+  <nav class="nav" id="nav">
+    <div class="logo">NETFLIX</div>
+  </nav>
+
+  <header class="hero" id="hero">
+    <div class="hero-content">
+      <h1 id="heroTitle"></h1>
+      <p id="heroDesc"></p>
+      <button onclick="playVideo(heroMovie)">▶ Play</button>
+    </div>
+  </header>
+
+  <div id="rows"></div>
+</section>
+
+<!-- PLAYER -->
+<div id="player">
+  <button class="close" onclick="closePlayer()">✕</button>
+  <div class="player-box" id="videoBox"></div>
+</div>
+
+<script>
+const auth=document.getElementById("auth");
+const dash=document.getElementById("dashboard");
+const loginForm=document.getElementById("loginForm");
+const signupForm=document.getElementById("signupForm");
+
+function toggleAuth(){
+  loginForm.classList.toggle("hidden");
+  signupForm.classList.toggle("hidden");
+}
+
+signupForm.onsubmit=e=>{
+  e.preventDefault();
+  if(signupPass.value.length<6){
+    signupError.innerText="Password too short";return;
+  }
+  localStorage.setItem("user",JSON.stringify({
+    e:signupEmail.value,p:signupPass.value
+  }));
+  loadDash();
+};
+
+loginForm.onsubmit=e=>{
+  e.preventDefault();
+  const u=JSON.parse(localStorage.getItem("user"));
+  if(!u||u.e!==loginEmail.value||u.p!==loginPass.value){
+    loginError.innerText="Invalid login";return;
+  }
+  loadDash();
+};
+
+let heroMovie={};
+
+
+
+const data = [
+
+/* ================= TELUGU MOVIES ================= */
+{
+  title: "TELUGU MOVIES",
+  large: false,
+  items: [
+    {
+      n: "RRR",
+      v: "NgBoMJy386M",
+      d: "Epic Telugu period action film by S.S. Rajamouli", 
+      i: "https://upload.wikimedia.org/wikipedia/en/d/d7/RRR_Poster.jpg"
+    },
+    {
+      n: "Pushpa: The Rise",
+      v: "Q1NKMPhP8PY",
+      d: "Story of a smuggler rising through the ranks",
+      i: "https://upload.wikimedia.org/wikipedia/en/7/75/Pushpa_-_The_Rise_%282021_film%29.jpg"
+    },
+    
+  ]
+},
+
+/* ================= TELUGU WEBSERIES ================= */
+{
+  title: "TELUGU WEBSERIES",
+  large: true,
+  items: [
+    {
+      n: "The Software DevLOVEper",
+      v: "-k_a4F6niqM",
+      d: "Popular Telugu YouTube web series about love & office life", 
+      i: "https://img.youtube.com/vi/-k_a4F6niqM/hqdefault.jpg"
+      // Official playlist available on YouTube as well :contentReference[oaicite:0]{index=0}
+    },
+    {
+      n: "Dear Kavya",
+      v: "pkdqoxL58FE",
+      d: "Romantic Telugu web series available on YouTube",
+      i: "https://img.youtube.com/vi/pkdqoxL58FE/hqdefault.jpg"
+      // Trailer and episodes exist on YouTube :contentReference[oaicite:1]{index=1}
+    },
+    
+  ]
+}
+
+];
+
+
+
+
+function loadDash(){
+  auth.classList.add("hidden");
+  dash.classList.remove("hidden");
+  renderRows();
+}
+
+function renderRows(){
+  const r=document.getElementById("rows");
+  r.innerHTML="";
+  data.forEach(cat=>{
+    const row=document.createElement("div");
+    row.className="row";
+    row.innerHTML=`<h2>${cat.title}</h2>`;
+    const posters=document.createElement("div");
+    posters.className="row-posters";
+    cat.items.forEach(m=>{
+      const img=document.createElement("img");
+      img.src=m.i;
+      img.className=`poster ${cat.large?"poster-large":"poster-normal"}`;
+      img.onclick=()=>playVideo(m);
+      posters.appendChild(img);
+      if(!heroMovie.n) heroMovie=m;
+    });
+    row.appendChild(posters);
+    r.appendChild(row);
+  });
+  hero.style.backgroundImage=`linear-gradient(to top,#141414,transparent),url('${heroMovie.i}')`;
+  heroTitle.innerText=heroMovie.n;
+  heroDesc.innerText=heroMovie.d;
+}
+
+function playVideo(m){
+  player.style.display="flex";
+  videoBox.innerHTML=`<iframe src="https://www.youtube.com/embed/${m.v}?autoplay=1" allowfullscreen></iframe>`;
+}
+function closePlayer(){
+  player.style.display="none";
+  videoBox.innerHTML="";
+}
+</script>
+
+</body>
+</html>
